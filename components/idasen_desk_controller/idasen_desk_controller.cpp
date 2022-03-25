@@ -3,6 +3,8 @@
 #include "esphome/core/helpers.h"
 #include <string>
 
+#ifdef USE_ESP32
+
 namespace esphome {
 namespace idasen_desk_controller {
 
@@ -330,3 +332,4 @@ espbt::ESPBTUUID uuid128_from_string(std::string value) {
 
 }  // namespace idasen_desk_controller
 }  // namespace esphome
+#endif
