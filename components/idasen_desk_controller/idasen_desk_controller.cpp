@@ -3,12 +3,18 @@
 #include "esphome/core/helpers.h"
 #include <string>
 
+#ifdef USE_ESP32
+
 namespace esphome {
 namespace idasen_desk_controller {
 
 static const char *TAG = "idasen_desk_controller";
 
 static const float DESK_MAX_HEIGHT = 6500;
+
+// how close we need to be to the target to be considered done moving.
+// `0.001` would be within 0.1% of the target
+static const float TARGET_VARIANCE = 0.001;
 
 static float transform_height_to_position(float height) { return height / DESK_MAX_HEIGHT; }
 static float transform_position_to_height(float position) { return position * DESK_MAX_HEIGHT; }
@@ -182,6 +188,7 @@ void IdasenDeskControllerComponent::publish_cover_state_(uint8_t *value, uint16_
 
   this->position = position;
   this->publish_state(false);
+  this->move_desk_();
 }
 
 void IdasenDeskControllerComponent::move_desk_() {
@@ -214,7 +221,7 @@ void IdasenDeskControllerComponent::move_desk_() {
     }
   }
 
-  ESP_LOGD(TAG, "Update Desk - Move from %.0f to %.0f", this->position * 100, this->position_target_ * 100);
+  ESP_LOGD(TAG, "Update Desk - Move from %.2f to %.2f", this->position * 100, this->position_target_ * 100);
   this->move_torwards_();
 }
 
@@ -269,6 +276,7 @@ void IdasenDeskControllerComponent::move_torwards_() {
       this->write_value_(this->control_handle_, 0x46);
     }
   } else {
+    ESP_LOGV(TAG, "sending request to move to %.2f", this->position_target_ * 100);
     this->write_value_(this->input_handle_, transform_position_to_height(this->position_target_));
   }
 }
@@ -293,6 +301,7 @@ bool IdasenDeskControllerComponent::is_at_target_() const {
       if (this->notify_disable_) {
         return !this->controlled_;
       }
+      return fabs((this->position - this->position_target_)) <= TARGET_VARIANCE;
     default:
       return true;
   }
@@ -323,3 +332,4 @@ espbt::ESPBTUUID uuid128_from_string(std::string value) {
 
 }  // namespace idasen_desk_controller
 }  // namespace esphome
+#endif
